@@ -1,1 +1,2 @@
 *.wav linguist-vendored
+templates/*.html linguist-vendored

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlertGuard - Enhanced Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script <script
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap"
+        async defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --g: #121212;
+            --acc: #009fff;
+            --acc-glow: rgb(0 112 255);
+            --teal: #6cffc7;
+            --amber: #ffcc00;
+            --red: #f96a6a;
+            --txt: #ffffff;
+            --txt2: #ffffff;
+            --border: rgb(0 0 0 );
+            --card: rgb(50 50 50 / 72%);
+        }
+
+        body {
+            background: var(--g);
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: var(--txt);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wrap {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
+            width: 100%;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            height: 50px;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--acc);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .left-col,
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .top-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 12px;
+            flex: 0.5;
+            min-height: 0;
+        }
+
+        .camera-log-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .clabel {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--acc);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .state-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .state-ring {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px dashed var(--acc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .camera-container {
+            width: 100%;
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        #map {
+            width: 100%;
+            flex: 1;
+            border-radius: 8px;
+            filter: invert(90%) hue-rotate(180deg) brightness(1.2);
+        }
+
+        .chart-wrap {
+            flex: 1;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Log Styling */
+        .log-box {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 9px;
+            padding: 8px;
+            overflow-y: auto;
+            color: var(--txt2);
+            border: 1px solid var(--border);
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            border-left: 2px solid var(--acc);
+            padding-left: 5px;
+        }
+
+        .log-entry.alert {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .bottom-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 5px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--txt2);
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--acc);
+        }
+
+        .perclos-track {
+            flex: 1;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .perclos-fill {
+            height: 100%;
+            /* background: var(--acc) !important; */
+            box-shadow: 0 0 8px var(--acc-glow);
+            transition: width 0.03s linear, background 0.5s ease;
+        }
+
+        #docModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: relative;
+            width: 85vw;
+            height: 85vh;
+            background: var(--g);
+            border: 2px solid var(--acc);
+            border-radius: 12px;
+            box-shadow: 0 0 40px var(--acc-glow);
+            display: flex;
+        }
+
+        /* location dropdown */
+
+        .pac-container {
+            background-color: #1a1a2e;
+            /* Dark background to match your theme */
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+            z-index: 10000 !important;
+            /* Ensures it stays above the topbar/grid */
+            margin-top: 5px;
+            width: 250px !important;
+            /* Increased width to prevent text cutoff */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .pac-item {
+            padding: 8px;
+            color: #ffffff;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+
+        .pac-item:hover {
+            background-color: rgba(0, 242, 255, 0.1);
+        }
+
+        .pac-item-query {
+            color: var(--acc);
+            /* Matches your AlertGuard Cyan color */
+            font-size: 11px;
+        }
+
+        .pac-matched {
+            font-weight: bold;
+        }
+
+        .hdpi .pac-logo:after {
+            display: none;
+        }
+
+        #clk {
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--acc);
+            display: flex;
+            align-items: center;
+            min-width: 250px;
+            justify-content: flex-end;
+        }
+        .change::placeholder
+        {
+            color: rgb(226, 226, 226);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header class="topbar">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div
+                    style="width:28px; height:28px; background:var(--acc); border-radius:6px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                        <circle cx="9" cy="7" r="4" stroke="white" stroke-width="1.5" />
+                        <path d="M2 16c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="white" stroke-width="1.5" />
+                    </svg>
+                </div>
+                <h1 class="title">AlertGuard</h1>
+            </div>
+            <div id="nav-input-group" style="display:flex; gap:5px;">
+                <input id="source-input" type="text" class="change" placeholder="Start Point..."
+                    style="padding:4px 8px; border-radius:4px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:white; font-size:10px; width:130px;">
+                <input id="dest-input" type="text" class="change" placeholder="Destination..."
+                    style="padding:4px 8px; border-radius:4px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:white; font-size:10px; width:130px;">
+                <button id="routeBtn"
+                    style="padding:0 10px; background:var(--acc); border:none; border-radius:4px; cursor:pointer; color:black; font-weight:bold; font-size:10px;">GO</button>
+                <button id="cancelBtn"
+                    style="padding:0 10px; background:var(--red); border:none; border-radius:4px; cursor:pointer; color:white; font-weight:bold; font-size:10px;">×</button>
+            </div>
+            <time id="clk" style="font-family:monospace; font-size:14px; color:var(--acc);"></time>
+        </header>
+
+        <main class="main-grid">
+            <section class="left-col">
+                <div class="top-info-row">
+                    <div class="card">
+                        <div class="clabel" style="color:var(--red);"><span>Emergency Contacts</span></div>
+                        <div class="contact-item"
+                            style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:2px 0;">
+                            <span>Police</span><span>100</span>
+                        </div>
+                        <div class="contact-item"
+                            style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding:2px 0;">
+                            <span>Ambulance</span><span>108</span>
+                        </div>
+
+                        <div class="clabel" style="margin-top:8px;">
+                            <span>Documentation</span>
+                            <span id="docCount" style="font-size: 8px; color: var(--txt2);">0/2</span>
+                        </div>
+                        <button id="uploadBtn"
+                            style="padding:4px; background:var(--acc); border:none; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold; width:100%;">
+                            Upload Docs
+                        </button>
+                        <div id="docList" style="margin-top: 5px; display: flex; flex-direction: column; gap: 4px;">
+                        </div>
+                        <input type="file" id="docUpload" style="display:none;" accept=".pdf,image/*" />
+                    </div>
+
+                    <div class="card" id="bioCard">
+                        <div class="clabel" id="bioLabel"><span>Biometric Monitor</span></div>
+                        <div class="state-display">
+                            <div class="state-ring" id="ringUI">
+                                <svg width="50" height="50" viewBox="0 0 90 90" id="faceSvg">
+                                    <ellipse cx="45" cy="50" rx="30" ry="34" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" opacity="0.8" />
+                                    <g id="eyesUI">
+                                        <circle cx="35" cy="45" r="2.5" fill="currentColor" />
+                                        <circle cx="55" cy="45" r="2.5" fill="currentColor" />
+                                    </g>
+                                    <path id="mouthUI" d="M35 65 Q45 65 55 65" stroke="currentColor" stroke-width="2"
+                                        fill="none" stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div id="stateLabel" style="font-size:16px; font-weight:800; color:var(--acc);">ACTIVE</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:8px; color:var(--txt2)">PERCLOS</span>
+                            <div class="perclos-track">
+                                <div class="perclos-fill" id="percFill" style="width:6%;"></div>
+                            </div>
+                            <span id="percVal" style="font-size:10px; font-weight:bold; color:var(--acc)">6%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="camera-log-container">
+                    <div class="card">
+                        <div class="clabel"><span>Optical Feed</span><span id="fps-badge" style="color:var(--teal)">LIVE
+                                30FPS</span></div>
+                        <div class="camera-container"><img id="webcam" src="/video_feed"
+                                style="width:100%; height:100%; object-fit:cover;"></div>
+                    </div>
+                    <div class="card">
+                        <div class="clabel">
+                            <span>System Logs</span>
+                            <button onclick="downloadLogPDF()"
+                                style="background:transparent; border:1px solid var(--acc); color:var(--acc); font-size:8px; padding:2px 5px; cursor:pointer; border-radius:3px;">Export
+                                PDF</button>
+                        </div>
+                        <div class="log-box" id="logBox"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right-col">
+                <div class="card" style="flex: 1.2;">
+                    <div class="clabel">
+                        <span>Navigation</span>
+                        <div style="display:flex; gap:8px;">
+                            <span id="mapCovered" style="color:var(--acc)">0 KM DONE</span> <span id="mapDist"
+                                style="color:var(--teal)">0 KM REMAIN</span>
+                            <span id="mapTime" style="color:var(--amber)">0 MIN</span>
+                            <!-- <span id="mapSpd">0 KM/H</span> -->
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                </div>
+                <div class="card" style="flex: 0.8;">
+                    <div class="clabel"><span>EAR Signal Analysis</span><span>Scale: 0.3 - 0.6</span></div>
+                    <div class="chart-wrap"><canvas id="earChart"></canvas></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="bottom-row" style="grid-template-columns: repeat(4, 1fr);"> 
+            <div class="stat-card"><span class="stat-label" style="color:var(--amber)">Drowsy Alerts</span><span class="stat-val" id="st-drowsy"
+                    style="color:var(--amber)">0</span></div>
+            <div class="stat-card"><span class="stat-label" style="color:var(--red)">Sleepy Alerts</span><span class="stat-val" id="st-sleep"
+                    style="color:var(--red)">0</span></div>
+            <div class="stat-card"><span class="stat-label" style="color:var(--acc)">Yawn Alerts</span><span class="stat-val" id="st-yawn"
+                    style="color:var(--acc)">0</span></div>
+            <div class="stat-card"><span class="stat-label">Driver Status</span><span class="stat-val"
+                    id="st-risk">NOMINAL</span></div>
+        </footer>
+    </div>
+
+    <div id="docModal">
+        <div class="modal-content">
+            <button id="closeModal"
+                style="position:absolute; top:-15px; right:-15px; background:var(--red); border:2px solid white; color:white; border-radius:50%; width:35px; height:35px; cursor:pointer; font-weight:bold; z-index:10;">X</button>
+            <iframe id="docFrame"
+                style="width:100%; height:100%; border:none; border-radius:10px; background:white;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // --- ENHANCED GOOGLE MAPS & NAVIGATION ---
+        //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Map logic start xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+        let map, directionsService, routePath, glowPath, destMarker, startMarker;
+        let userMarker; 
+        let currentCapturedCoords = null; 
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 16.694787754623928, lng: 74.22273695468904 },
+                zoom: 15,
+                disableDefaultUI: true,
+                styles: [
+                    { "elementType": "geometry", "stylers": [{ "color": "#121212" }] },
+                    { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+                    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#2c2c2c" }] }
+                ]
+            });
+
+            directionsService = new google.maps.DirectionsService();
+
+            // 1. Blue Circle Marker (Current Live Location)
+            userMarker = new google.maps.Marker({
+                map: map,
+                optimized: false,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    scale: 7,
+                    strokeColor: 'white',
+                    strokeWeight: 2
+                }
+            });
+
+            // Handle Live Location Tracking
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    currentCapturedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    userMarker.setPosition(currentCapturedCoords);
+
+                    // If map hasn't moved yet, center on user
+                    if (!routePath) map.setCenter(currentCapturedCoords);
+
+                    const speed = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0;
+                    document.getElementById('mapSpd').textContent = speed + " KM/H";
+                }, null, { enableHighAccuracy: true });
+            }
+
+            // Autocomplete setup
+            new google.maps.places.Autocomplete(document.getElementById("source-input"));
+            new google.maps.places.Autocomplete(document.getElementById("dest-input"));
+
+            document.getElementById("routeBtn").addEventListener("click", () => {
+                const srcInput = document.getElementById("source-input").value;
+                const dstInput = document.getElementById("dest-input").value;
+
+                // LOGIC: Use manual input first; if empty, use captured live coordinates
+                const source = srcInput || currentCapturedCoords;
+
+                if (dstInput && source) {
+                    calculateRoute(source, dstInput, !!srcInput);
+                } else if (!source) {
+                    addLog("NAV ERROR: Live location not yet captured", "drowsy");
+                }
+            });
+
+            // Add this inside your script, near the routeBtn event listener
+            document.getElementById("cancelBtn").addEventListener("click", () => {
+                clearRoute();
+            });
+
+            function clearRoute() {
+                // 1. Remove Polylines (the blue path and glow)
+                if (routePath) {
+                    routePath.setMap(null);
+                    routePath = null;
+                }
+                if (glowPath) {
+                    glowPath.setMap(null);
+                    glowPath = null;
+                }
+
+                // 2. Remove Markers (Destination and Manual Start)
+                if (destMarker) {
+                    destMarker.setMap(null);
+                    destMarker = null;
+                }
+                if (startMarker) {
+                    startMarker.setMap(null);
+                    startMarker = null;
+                }
+
+                // 3. Clear Input Fields
+                document.getElementById("source-input").value = "";
+                document.getElementById("dest-input").value = "";
+
+                // 4. Reset HUD Navigation Labels
+                document.getElementById('mapDist').textContent = "0 KM REMAIN";
+                document.getElementById('mapTime').textContent = "0 MIN";
+                document.getElementById('mapCovered').textContent = "0 KM DONE";
+
+                // 5. Re-center map on live location if available
+                if (currentCapturedCoords) {
+                    map.panTo(currentCapturedCoords);
+                    map.setZoom(15);
+                }
+
+                addLog("NAV: Route cleared by operator", "normal", true);
+            }
+        }
+
+        function calculateRoute(source, destination, isManualStart) {
+            directionsService.route({
+                origin: source,
+                destination: destination,
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === "OK") {
+                    // Clear previous route elements
+                    if (routePath) routePath.setMap(null);
+                    if (glowPath) glowPath.setMap(null);
+                    if (destMarker) destMarker.setMap(null);
+                    if (startMarker) startMarker.setMap(null);
+
+                    const leg = result.routes[0].legs[0];
+
+                    // 2. Red Destination Marker
+                    destMarker = new google.maps.Marker({
+                        position: leg.end_location,
+                        map: map,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                    });
+
+                    // 3. Yellow Circle Marker (Only if a manual starting point is used)
+                    if (isManualStart) {
+                        startMarker = new google.maps.Marker({
+                            position: leg.start_location,
+                            map: map,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                fillColor: '#ffff00',
+                                fillOpacity: 1,
+                                scale: 7,
+                                strokeColor: 'white',
+                                strokeWeight: 2
+                            }
+                        });
+                    }
+
+                    // Blue Route Path with Glow
+                    const path = result.routes[0].overview_path;
+                    routePath = new google.maps.Polyline({
+                        path: path,
+                        strokeColor: "#00f2ff",
+                        strokeWeight: 5,
+                        map: map
+                    });
+                    glowPath = new google.maps.Polyline({
+                        path: path,
+                        strokeColor: "#00f2ff",
+                        strokeOpacity: 0.3,
+                        strokeWeight: 12,
+                        map: map
+                    });
+
+                    document.getElementById('mapDist').textContent = leg.distance.text + " REMAIN";
+                    document.getElementById('mapTime').textContent = leg.duration.text;
+                    map.fitBounds(result.routes[0].bounds);
+                    addLog(`Route Locked: ${leg.distance.text}`, "normal", true);
+                }
+            });
+        }
+
+        function updateProgress(currentPos) {
+            if (!startLocation) return;
+
+            // Simple straight-line distance calculation from start to current position
+            const R = 6371; // Earth radius in km
+            const dLat = (currentPos.lat - startLocation.lat) * Math.PI / 180;
+            const dLon = (currentPos.lng - startLocation.lng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(startLocation.lat * Math.PI / 180) * Math.cos(currentPos.lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distanceCovered = (R * c).toFixed(2);
+
+            document.getElementById('mapCovered').textContent = distanceCovered + " KM DONE";
+        }
+
+        //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Map logic end xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        // --- 30FPS SMOOTH CHART ---
+        let earHistory = Array(50).fill(0.45);
+        const earChart = new Chart(document.getElementById('earChart'), {
+            type: 'line',
+            data: { labels: Array(50).fill(''), datasets: [{ data: earHistory, borderColor: '#009fff', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(255, 132,0 , 0.1)', tension: 0.4 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                animation: { duration: 33 }, // High frequency animation
+                scales: { y: { min: 0.3, max: 0.6, grid: { color: 'rgba(88,88,88,0.2)' }, ticks: { stepSize: 0.05, color: '#009fff' } }, x: { display: false } }
+            }
+        });
+
+        // --- LOGGING SYSTEM ---
+        const logEntries = [];
+        // Track timestamps of logs
+        let logTimestamps = [];
+        let currentStatus = "ACTIVE";
+        function addLog(msg, type = 'info', force = false) {
+            const now = Date.now();
+
+            // Keep only logs from last 60 seconds
+            logTimestamps = logTimestamps.filter(t => now - t < 60000);
+
+            //  limit only if NOT forced
+            if (!force && logTimestamps.length >= 6) return;
+
+            logTimestamps.push(now);
+
+            const logBox = document.getElementById('logBox');
+            const time = new Date().toLocaleTimeString('en-GB');
+            const entry = `[${time}] ${msg}`;
+
+            logEntries.push(entry);
+
+            const div = document.createElement('div');
+
+            //  Color classes
+            if (type === 'sleep') div.className = 'log-entry alert';
+            else if (type === 'drowsy') {
+                div.className = 'log-entry';
+                div.style.borderColor = "var(--amber)";
+                div.style.color = "var(--amber)";
+            } else {
+                div.className = 'log-entry';
+                div.style.borderColor = "var(--teal)";
+                div.style.color = "var(--acc)";
+            }
+
+            div.textContent = entry;
+
+            logBox.prepend(div);
+
+            if (logBox.childNodes.length > 50) logBox.lastChild.remove();
+        }
+        setInterval(() => {
+            // if (currentStatus.includes("SLEEP")) {
+            //     return; // do nothing (sleep handled separately)
+            // }
+            if (currentStatus.includes("DROW")) {
+                addLog("WARNING: User Drowsy", "drowsy");
+            }
+            else {
+                addLog("STATUS: User Active", "normal");
+            }
+        }, 10000); // every 10 sec
+
+        function downloadLogPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(16);
+            doc.text("AlertGuard - System Logs", 10, 10);
+            doc.setFontSize(10);
+            logEntries.slice().reverse().forEach((log, i) => {
+                doc.text(log, 10, 20 + (i * 7));
+            });
+            doc.save("AlertGuard_logs.pdf");
+        }
+
+        // --- FACIAL EXPRESSIONS & 33ms (30FPS) UPDATE ---
+        const mouthPath = document.getElementById('mouthUI');
+        const eyesGroup = document.getElementById('eyesUI');
+
+        function updateFace(status) {
+            let color = "var(--acc)";
+            let mouthD = "M35 65 Q45 75 55 65"; // Neutral/Smile
+            let eyeScale = "1";
+
+            if (status.includes("DROWSY")) {
+                color = "var(--amber)";
+                mouthD = "M35 65 Q45 65 55 65"; // Flat line
+                eyeScale = "0.5"; // Half-closed
+            } else if (status.includes("SLEEPING")) {
+                color = "var(--red)";
+                mouthD = "M35 70 Q45 60 55 70"; // Frown
+                eyeScale = "0.1"; // Closed
+            }
+
+            document.getElementById('ringUI').style.borderColor = color;
+            document.getElementById('faceSvg').style.color = color;
+            mouthPath.setAttribute("d", mouthD);
+            eyesGroup.style.transform = `scaleY(${eyeScale})`;
+            eyesGroup.style.transformOrigin = "center 45px";
+        }
+
+        let lastSleepLogTime = 0;
+        let prevStatus = "ACTIVE";
+        //loop
+        async function loop() {
+            try {
+                //live location
+                let locationData = {};
+                if (currentCapturedCoords) {
+                    locationData = {
+                        lat: currentCapturedCoords.lat,
+                        lng: currentCapturedCoords.lng
+                    };
+                }
+
+                // Send location to the backend while fetching stats
+                const response = await fetch('/stats', {
+                    method: 'POST', // Changed to POST to send location data
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(locationData)
+                });
+                const data = await response.json();
+
+                // --- 1. BIOMETRIC STATUS FIX ---
+                const status = data.status || "ACTIVE";
+                currentStatus = status;
+                const perclos = parseFloat(data.perclos) || 0; 
+
+                updateFace(status);
+
+                const stateLabel = document.getElementById('stateLabel');
+                stateLabel.textContent = status;
+                stateLabel.style.color = status.includes("SLEEP") ? "var(--red)" : (status.includes("DROW") ? "var(--amber)" : "var(--acc)");
+
+                // --- 2. PERCLOS LINE & TEXT FIX ---
+                // Ensure we round the number so it doesn't show long decimals like 6.66666%
+                const displayPerclos = Math.round(perclos);
+                const percFill = document.getElementById('percFill');
+                percFill.style.width = displayPerclos + "%";
+                document.getElementById('percVal').textContent = displayPerclos + "%";
+
+                //  COLOR LOGIC ADDED HERE
+                if (status.includes("SLEEP")) {
+                    percFill.style.background = "var(--red)";
+                } else if (status.includes("DROW")) {
+                    percFill.style.background = "var(--amber)";
+                } else {
+                    percFill.style.background = "var(--acc)";
+                }
+
+                // --- 3. RISK & EPISODES ---
+                const risk = document.getElementById('st-risk');
+                risk.textContent = data.risk || "NOMINAL";
+                risk.style.color = (data.risk || "").includes("CRITICAL") ? "var(--red)" : ((data.risk || "").includes("ELEVATED") ? "var(--amber)" : "var(--teal)");
+
+                document.getElementById('st-drowsy').textContent = data.drowsy_episodes ?? 0;
+                document.getElementById('st-sleep').textContent = data.sleep_alerts ?? 0;
+
+                // --- 4. CHART UPDATE ---
+                const earVal = parseFloat(data.ear) || 0.45;
+                earChart.data.datasets[0].data.push(earVal);
+                earChart.data.datasets[0].data.shift();
+                earChart.update('none');
+
+                // if (status.includes("SLEEPING")) addLog("CRITICAL: User Sleeping Detected!", 'alert');
+                const now = Date.now();
+                if (status.includes("SLEEP")) {
+                    if (now - lastSleepLogTime > 1000) { 
+                        addLog("CRITICAL: User Still Sleeping...", "sleep", true);
+                        lastSleepLogTime = now;
+                    }
+                }
+                if (status !== prevStatus && status !== "") {
+                    if (status.includes("ACTIVE")) {
+                        addLog("RECOVERY: User is Active", "normal", true);
+                    }
+                    else if (status.includes("DROW")) {
+                        addLog("WARNING: User became Drowsy", "drowsy", true);
+                    }
+                    else if (status.includes("SLEEP")) {
+                        addLog("CRITICAL: User fell asleep!", "sleep", true);
+                    }
+
+                    prevStatus = status;
+                }
+
+                document.getElementById('st-yawn').textContent = data.yawn_count ?? 0;
+
+                if (data.focus_status !== "Front") {
+                    addLog(`ATTENTION: Looking ${data.focus_status}`, "drowsy");
+                }
+            } catch (e) { console.warn("Sync Lost..."); }
+        }
+        setInterval(loop, 30); // ~30 FPS polling
+
+        setInterval(() => {
+            const now = new Date();
+
+            // Format: "Thursday, 07 May 2026"
+            const dateStr = now.toLocaleDateString('en-GB', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            // Format: "21:58:37"
+            const timeStr = now.toLocaleTimeString('en-GB');
+
+            // Combine both into the element
+            document.getElementById('clk').innerHTML = `
+        <span style="color:var(--acc); font-size:13px; margin-right:10px;">${dateStr}</span>
+        <span>${timeStr}</span>
+    `;
+        }, 1000);
+        // --- DOCUMENT MANAGEMENT (2 FILE LIMIT + VIEWING) ---
+        const uploadBtn = document.getElementById("uploadBtn");
+        const docUpload = document.getElementById("docUpload");
+        const docList = document.getElementById("docList");
+        const docCountLabel = document.getElementById("docCount");
+        const docModal = document.getElementById("docModal");
+        const docFrame = document.getElementById("docFrame");
+        const closeModal = document.getElementById("closeModal");
+
+        let uploadedFiles = [];
+
+        uploadBtn.onclick = () => {
+            if (uploadedFiles.length >= 2) {
+                addLog("LIMIT REACHED: Maximum 2 documents allowed", "drowsy");
+                return;
+            }
+            docUpload.click();
+        };
+
+        docUpload.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file && uploadedFiles.length < 2) {
+                // Create a local URL for the file so we can view it
+                const fileURL = URL.createObjectURL(file);
+                uploadedFiles.push({ name: file.name, url: fileURL });
+
+                // Update UI
+                renderDocList();
+                addLog(`Document Secured: ${file.name}`, "normal");
+
+                // Disable button if limit reached
+                if (uploadedFiles.length === 2) {
+                    uploadBtn.style.opacity = "0.5";
+                    uploadBtn.textContent = "Limit Reached";
+                }
+            }
+            docUpload.value = "";
+        };
+
+        function renderDocList() {
+            docList.innerHTML = "";
+            docCountLabel.textContent = `${uploadedFiles.length}/2`;
+
+            uploadedFiles.forEach((doc, index) => {
+                const item = document.createElement('div');
+                item.style = "font-size:10px; color:var(--acc); background:rgba(0,242,255,0.05); padding:5px; border-radius:4px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border);";
+
+                item.innerHTML = `
+            <span onclick="viewDoc('${doc.url}')">📄 ${doc.name.substring(0, 15)}${doc.name.length > 15 ? '...' : ''}</span>
+            <span onclick="removeDoc(${index})" style="color:var(--red); font-weight:bold; padding-left:10px;">×</span>
+        `;
+                docList.appendChild(item);
+            });
+        }
+
+        function viewDoc(url) {
+            docFrame.src = url;
+            docModal.style.display = "flex";
+        }
+
+        function removeDoc(index) {
+            uploadedFiles.splice(index, 1);
+            uploadBtn.style.opacity = "1";
+            uploadBtn.textContent = "Upload Docs";
+            renderDocList();
+        }
+
+        closeModal.onclick = () => {
+            docModal.style.display = "none";
+            docFrame.src = "";
+        };
+    </script>
+</body>
+
+</html>

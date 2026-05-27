@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlertGuard Auth | Tactical Entry</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #12141f;
+            --accent: #009fff;
+            --accent-dim: rgba(50 50 50/72%);
+            --border: rgb(0 0 0);
+            --text: #ffffff;
+            --text-muted: #8a8d9b;
+            --error: #f96a6a;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .main-frame {
+            width: 900px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0px 0px 30px rgb(143, 143, 143);
+            
+        }
+
+        .branding {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .branding h1 {
+            font-size: 18px;
+            letter-spacing: 4px;
+            margin: 0;
+            color: var(--accent);
+        }
+
+        .branding span {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .auth-content {
+            display: none;
+            width: 100%;
+            height: 350px;
+        }
+
+        .auth-content.active {
+            display: flex;
+            gap: 40px;
+        }
+
+        .form-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .visual-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 20px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            outline: none;
+            background: #050505;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .cam-box {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            position: relative;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 15px;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .scan-anim {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            top: 0;
+            box-shadow: 0 0 15px var(--accent);
+            animation: scan 3s infinite ease-in-out;
+            z-index: 10;
+        }
+
+        @keyframes scan {
+
+            0%,
+            100% {
+                top: 10%;
+            }
+
+            50% {
+                top: 90%;
+            }
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .btn:disabled {
+            background: #333;
+            cursor: not-allowed;
+            color: #666;
+        }
+
+        .btn:hover:not(:disabled) {
+            filter: brightness(1.2);
+            box-shadow: 0 0 20px var(--accent-dim);
+        }
+
+        .sub-link {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        #bio-stat {
+            font-size: 11px;
+            margin-top: 10px;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        #snap-canvas {
+            display: none;
+        }
+
+        .sub-link:hover {
+            color: var(--accent);
+        }
+
+        /* NEW ERROR STYLING */
+        .error-message {
+            position: absolute;
+            bottom: 15px;
+            left: 40px;
+            right: 40px;
+            color: var(--error);
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            border-top: 1px solid rgba(255, 68, 68, 0.2);
+            padding-top: 10px;
+        }
+
+        .error-message.visible {
+            opacity: 1;
+        }
+.logo {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+
+.logo img {
+    width: 350px;
+    height: 320px;
+    object-fit: contain;
+    border-radius: 12px;
+    /* box-shadow: 0 0 20px rgba(59, 161, 224, 0.4); */
+    margin-bottom: 100px;
+}
+    </style>
+</head>
+
+<body>
+    <div class="main-frame">
+        <div class="branding">
+            <h1>ALERTGUARD ACCESS</h1>
+            <span>Security Level: Tier-3 Operator</span>
+        </div>
+
+        <div id="step-login" class="auth-content active">
+            <div class="form-area">
+                <div class="input-group">
+                    <label>Operator ID / Email</label>
+                    <input type="email" id="login-email" placeholder="ADMIN@ALERTGUARD.SYSTEM">
+                </div>
+                <div class="input-group">
+                    <label>Security Password</label>
+                    <input type="password" id="login-pass" placeholder="••••••••••••">
+                </div>
+                <button class="btn" onclick="nextToBio()">Login</button>
+                <div class="sub-link" onclick="switchView('step-reg')">New Operator? Register Terminal</div>
+            </div>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+            </div>
+        </div>
+
+        <div id="step-reg" class="auth-content">
+            <div class="form-area" style="flex: 1.5;">
+                <div class="grid-2">
+                    <div class="input-group"><label>First Name</label><input type="text" id="reg-fn"></div>
+                    <div class="input-group"><label>Last Name</label><input type="text" id="reg-ln"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group"><label>Email</label><input type="email" id="reg-em"></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="reg-ps"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group"><label>User Mobile</label><input type="tel" id="reg-uph"></div>
+                    <div class="input-group"><label>Guardian Mobile</label><input type="tel" id="reg-gph"></div>
+                </div>
+                <Button class="btn" onclick="saveNewOperator()">Register</Button>
+                <div class="sub-link" onclick="switchView('step-login')">Already have access? Sign in</div>
+            </div>
+        </div>
+        <div id="ui-error" class="error-message">SYSTEM ERROR: ACCESS DENIED</div>
+    </div>
+
+    <script>
+        let activeStream = null;
+
+        // 1. Unified Status/Error Display (Replaces Alert)
+        function displayUIStatus(msg, isError = true) {
+            const errorEl = document.getElementById('ui-error');
+            errorEl.style.color = isError ? "var(--error)" : "var(--accent)";
+            errorEl.textContent = isError ? `CRITICAL_ERROR: ${msg}` : `SUCCESS: ${msg}`;
+            errorEl.classList.add('visible');
+
+            setTimeout(() => {
+                errorEl.classList.remove('visible');
+            }, 4000);
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.auth-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+        //Login function
+        async function nextToBio() 
+        {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+
+            if(!email || !pass)
+        {
+            displayUIStatus("ENTER EMAIL AND PASSWORD");
+            return;
+        }
+            try
+            {
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: pass })
+            });
+            const response = await res.json();
+            if(response.success)
+            {
+                displayUIStatus("LOGIN SUCCESSFUL",false);
+                setTimeout(()=>{
+                window.location.href="/dashboard";
+                },1000)
+            }
+            else
+            {
+                displayUIStatus(response.message||"INVALID LOGIN");
+            }
+            }
+            catch(err)
+            {
+                displayUIStatus("SERVER ERROR");
+            }
+        }
+
+        // 4. Button Action: Register to Login
+        async function saveNewOperator() {
+            const data=
+            {
+                first_name:document.getElementById('reg-fn').value.trim(),
+                last_name:document.getElementById('reg-ln').value.trim(),
+                email:document.getElementById('reg-em').value.trim(),
+                password:document.getElementById('reg-ps').value.trim(),
+                user_phone:document.getElementById('reg-uph').value.trim(),
+                guardian_phone:document.getElementById('reg-gph').value.trim()
+            }
+
+            if (!data.first_name || !data.last_name || !data.email || !data.password) 
+            {
+                displayUIStatus("ALL FIELDS REQUIRED");
+                return;
+            } 
+            
+            try {
+            const res = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const response = await res.json();
+            if (response.success) {
+                displayUIStatus("REGISTERED SUCCESSFULLY", false);
+                // Redirect to Login Page
+                setTimeout(() => {
+                    switchView('step-login');
+                }, 1000);
+            } 
+            else
+            {
+                displayUIStatus(response.message || "REGISTRATION FAILED");
+            }
+        } 
+        catch (err) 
+        {
+            displayUIStatus("SERVER ERROR");
+        }
+        }
+    </script>
+</body>
+</html>
